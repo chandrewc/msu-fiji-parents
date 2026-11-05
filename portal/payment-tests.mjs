@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import {parseDonation,checkoutParameters,donationConfig,ownsPortal} from './payment-helpers.mjs';
+import {readFile} from 'node:fs/promises';
+assert.equal(await readFile(new URL('./payment-helpers.mjs',import.meta.url),'utf8'),await readFile(new URL('../supabase/functions/_shared/donations.ts',import.meta.url),'utf8'));
 const id='12345678-1234-4123-8123-123456789abc';
 for(const amount of ['1','25.50','100000'])assert.ok(parseDonation({amount,purpose:'',request_id:id}).cents>=100);
 for(const amount of ['0','-1','1.001','1e2','100000.01'])assert.throws(()=>parseDonation({amount,purpose:'',request_id:id}));

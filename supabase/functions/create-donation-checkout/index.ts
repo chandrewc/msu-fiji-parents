@@ -12,9 +12,36 @@ Deno.serve(async(req)=>{
  const auth=req.headers.get('authorization')||'';if(!auth.startsWith('Bearer '))return reply({error:'Sign in required'},401);
  const db=createClient(Deno.env.get('SUPABASE_URL'),Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),{auth:{persistSession:false,autoRefreshToken:false}});
  const {data:{user},error}=await db.auth.getUser(auth.slice(7));if(error||!user)return reply({error:'Sign in required'},401);
- const member=await db.from('parents').select('approved,rejected,deactivated_at,profile_complete').eq('user_id',user.id).single();
+ const member=await db.from('parents').select('approved,rejected,deactivated_at,profile_complete,role').eq('user_id',user.id).single();
  if(member.error||!member.data?.approved||member.data.rejected||member.data.deactivated_at||!member.data.profile_complete)return reply({error:'Approved parent access required'},403);
  const input=await req.json();const config=donationConfig(n=>Deno.env.get(n));
+ // A protected administrator may verify live configuration without a charge.
+ // Never return a checkout URL; immediately expire the unpaid $1 session.
+ if(['verify_configuration','verification_status'].includes(input.action)){
+ if(member.data.role!=='super_admin')return reply({error:'Super administrator required'},403);
+ const flags={key_configured:/^(rk|sk)_live_/.test(config.key||''),webhook_configured:!!config.secret,account_matches:false,charges_enabled:false,signed_webhook_verified:false};
+ if(!config.ready)return reply({...flags,verified:false});
+ const verifier=new Stripe(config.key,{apiVersion:'2026-09-30.endive',maxNetworkRetries:2});
+ const account=await verifier.accounts.retrieve();flags.account_matches=account.id===ACCOUNT_ID;flags.charges_enabled=account.charges_enabled===true;
+ if(!flags.account_matches||!flags.charges_enabled)return reply({...flags,verified:false});
+ if(input.action==='verification_status'){
+ if(!/^[0-9a-f-]{36}$/i.test(input.donation_id||''))return reply({error:'Invalid verification reference'},400);
+ const found=await db.from('stripe_donations').select('id,status,checkout_session_id').eq('id',input.donation_id).eq('member_id',user.id).eq('verification',true).single();
+ if(found.error)return reply({error:'Verification not found'},404);
+ const events=await db.from('stripe_donation_events').select('event_id').eq('donation_id',found.data.id).limit(1);
+ flags.signed_webhook_verified=!events.error&&!!events.data?.length&&found.data.status==='expired';
+ if(flags.signed_webhook_verified){const saved=await db.from('portal_settings').update({checkout_verified:true,verified_at:new Date().toISOString()}).eq('id',true);if(saved.error)throw saved.error;}
+ return reply({...flags,verified:flags.signed_webhook_verified});
+ }
+ const donation={id:crypto.randomUUID(),member_id:user.id,amount_cents:100,purpose:'Unpaid configuration verification',fund:'parents',portal:'parents',livemode:true,verification:true};
+ const inserted=await db.from('stripe_donations').insert(donation);if(inserted.error)throw inserted.error;
+ const session=await verifier.checkout.sessions.create(checkoutParameters(donation,user.id),{idempotencyKey:'parents-verification-'+donation.id});
+ if(!session.livemode||session.amount_total!==100||session.currency!=='usd'||session.metadata?.fund!=='parents'||session.metadata?.portal!=='parents')throw Error('Verification mismatch');
+ const saved=await db.from('stripe_donations').update({checkout_session_id:session.id}).eq('id',donation.id);if(saved.error)throw saved.error;
+ const expired=await verifier.checkout.sessions.expire(session.id);if(expired.status!=='expired')throw Error('Session not expired');
+ return reply({...flags,verified:false,awaiting_webhook:true,donation_id:donation.id});
+ }
+
  const gate=await db.from('portal_settings').select('checkout_verified').eq('id',true).single();
  let ready=config.ready&&config.enabled&&!gate.error&&gate.data?.checkout_verified===true;
  const stripe=config.ready?new Stripe(config.key,{apiVersion:'2026-09-30.endive',maxNetworkRetries:2}):null;

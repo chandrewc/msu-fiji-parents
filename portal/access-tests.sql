@@ -14,7 +14,8 @@ insert into public.stripe_donations(id,member_id,amount_cents,checkout_session_i
 set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
 do $$begin
- if (select count(*) from public.parents)<>3 then raise exception 'Directory access failed';end if;
+ if (select count(*) from public.parents)<>1 then raise exception 'Base administrative fields exposed';end if;
+ if (select count(*) from public.get_parent_directory())<>3 then raise exception 'Directory access failed';end if;
  if (select count(*) from public.parent_private)<>1 then raise exception 'Student privacy failed';end if;
  if (select count(*) from public.parent_donations)<>1 then raise exception 'Donation ownership failed';end if;
  if (select public.has_admin_permission('parents')) then raise exception 'Ordinary parent has admin';end if;
