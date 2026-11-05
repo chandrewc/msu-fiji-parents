@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {parseDonation,checkoutParameters,donationConfig,ownsPortal} from './payment-helpers.mjs';
+const id='12345678-1234-4123-8123-123456789abc';
+for(const amount of ['1','25.50','100000'])assert.ok(parseDonation({amount,purpose:'',request_id:id}).cents>=100);
+for(const amount of ['0','-1','1.001','1e2','100000.01'])assert.throws(()=>parseDonation({amount,purpose:'',request_id:id}));
+const params=checkoutParameters({id,amount_cents:2500},'parent');
+assert.equal(params.metadata.fund,'parents');assert.equal(params.metadata.portal,'parents');
+assert.equal(params.payment_intent_data.metadata.fund,'parents');assert.equal(params.payment_intent_data.metadata.donation_id,id);assert.equal(params.automatic_tax.enabled,false);
+assert.equal(donationConfig(()=>null).ready,false);assert.equal(ownsPortal({fund:'parents',donation_id:id,member_id:'parent'}),false);
+console.log('Donation validation, metadata, tax, foreign-portal rejection and disabled-default checks passed.');

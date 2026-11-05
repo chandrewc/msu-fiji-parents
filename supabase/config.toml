@@ -1,0 +1,8 @@
+project_id = "dpnarcfneykthucexbuq"
+[auth]
+site_url = "https://parents.msufiji.com/"
+additional_redirect_urls = ["https://parents.msufiji.com/"]
+[functions.create-donation-checkout]
+verify_jwt = false
+[functions.stripe-donation-webhook]
+verify_jwt = false
