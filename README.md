@@ -41,3 +41,9 @@ Before enabling: verify account identity and charges_enabled, restricted-key Che
 ## Validation
 
 Run the transaction-only database scenarios in portal/access-tests.sql through the project SQL executor; they roll back all fixtures. Run portal/payment-tests.mjs with Node. Final browser checks must cover Google callback, email confirmation/recovery, profile completion, approval, publishing/edit/deletion, delegated controls, deactivate/reactivate, CRM/export, and mobile. No live payment should be charged as part of configuration verification.
+
+## Authentication email sender
+
+The existing chapter sender uses Resend. The new project's prepared SMTP settings are sender noreply@msufiji.com, sender name Sigma Mu Parents Portal, host smtp.resend.com, port 465, and username resend. The SMTP password is a Resend API key (re_), entered directly into Supabase Auth SMTP settings. It is not a Stripe key. The original project's settings were read only and left unchanged.
+
+After SMTP is saved, apply the subjects and HTML in portal/auth-email-templates.json in Supabase Authentication → Emails. The Site URL and return allowlist are already https://parents.msufiji.com/. Email confirmation and password recovery still need delivery tests through the new SMTP configuration. Automatic newsletter emails remain disabled independently of authentication mail.

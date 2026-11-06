@@ -174,3 +174,4 @@ declare j jsonb;label text;actor text;begin
  if j->>'permission' is not null then label=label||' · '||(j->>'permission');end if;
  insert into public.admin_activity_log(actor_id,actor_name,action,record_id,record_label) values(auth.uid(),coalesce(nullif(actor,''),'Administrator'),tg_table_name||'.'||lower(tg_op),coalesce(j->>'id',j->>'user_id'),label);
  end if;return coalesce(new,old);end$$;
+alter table public.parent_contacts alter column contact_date set default (now() at time zone 'America/Chicago')::date; alter table public.parent_donations alter column donation_date set default (now() at time zone 'America/Chicago')::date;
