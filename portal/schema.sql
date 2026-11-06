@@ -164,3 +164,13 @@ create function public.admin_edit_parent(p_user_id uuid,p_full_name text,p_usern
 revoke all on function public.save_parent_profile(text,text,text,text,text,text,text,text,text,text,text),public.admin_parent_access(uuid,text),public.set_parent_permissions(uuid,text[],text),public.admin_edit_parent(uuid,text,text,text,text,text,text,text,text,text,text,text) from public,anon;
 grant execute on function public.save_parent_profile(text,text,text,text,text,text,text,text,text,text,text),public.admin_parent_access(uuid,text),public.set_parent_permissions(uuid,text[],text),public.admin_edit_parent(uuid,text,text,text,text,text,text,text,text,text,text,text) to authenticated;
 alter table public.stripe_donations add column verification boolean not null default false; alter table public.stripe_donations add constraint verification_amount check(not verification or amount_cents=100);
+alter table public.admin_activity_log add column actor_name text,add column record_label text;
+create or replace function private.audit() returns trigger language plpgsql security definer set search_path='' as $$
+declare j jsonb;label text;actor text;begin
+ if private.permission('activity') or exists(select 1 from public.parents where user_id=auth.uid() and role in ('admin','super_admin') and deactivated_at is null) or exists(select 1 from public.parent_admin_permissions where user_id=auth.uid()) then
+ j=coalesce(to_jsonb(new),to_jsonb(old));
+ select full_name into actor from public.parents where user_id=auth.uid();
+ label=coalesce(j->>'title',j->>'full_name',(select full_name from public.parents where user_id::text=j->>'user_id'),'Portal record');
+ if j->>'permission' is not null then label=label||' · '||(j->>'permission');end if;
+ insert into public.admin_activity_log(actor_id,actor_name,action,record_id,record_label) values(auth.uid(),coalesce(nullif(actor,''),'Administrator'),tg_table_name||'.'||lower(tg_op),coalesce(j->>'id',j->>'user_id'),label);
+ end if;return coalesce(new,old);end$$;

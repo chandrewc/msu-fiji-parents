@@ -1,0 +1,26 @@
+{
+  "confirm-sign-up": {
+    "subject": "Confirm your Sigma Mu Parents Portal account",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Confirm your email address</h3><p>Confirm your email to continue registration. After completing your profile, an administrator must approve your access.</p><p><a href=\"{{ .ConfirmationURL }}\">Confirm your email address</a></p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  },
+  "reset-password": {
+    "subject": "Reset your Sigma Mu Parents Portal password",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Reset your password</h3><p>Use this link to reset the password for your email registration. If you did not request this, you can ignore this message.</p><p><a href=\"{{ .ConfirmationURL }}\">Reset your password</a></p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  },
+  "magic-link-or-otp": {
+    "subject": "Sign in to Sigma Mu Parents Portal",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Sign in to your parent account</h3><p>Use this secure link to sign in. Administrator approval is still required before private portal access.</p><p><a href=\"{{ .ConfirmationURL }}\">Sign in to your parent account</a></p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  },
+  "invite-user": {
+    "subject": "Your Sigma Mu Parents Portal invitation",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Open Sigma Mu Parents Portal</h3><p>Use this link to open your account and complete your parent profile.</p><p><a href=\"{{ .ConfirmationURL }}\">Open Sigma Mu Parents Portal</a></p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  },
+  "change-email-address": {
+    "subject": "Confirm your Sigma Mu Parents Portal email change",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Confirm your email address</h3><p>Use this link to confirm the email change for your account.</p><p><a href=\"{{ .ConfirmationURL }}\">Confirm your email address</a></p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  },
+  "reauthentication": {
+    "subject": "Verify your Sigma Mu Parents Portal identity",
+    "body": "<h2>Sigma Mu Parents Portal</h2><p>Mississippi State University</p><h3>Verify your identity</h3><p>Your verification code is {{ .Token }}. If you did not request this, contact support@msufiji.com.</p><p><a href=\"https://parents.msufiji.com/\">Open the parents portal</a></p><p>Questions? support@msufiji.com</p>"
+  }
+}

@@ -17,5 +17,5 @@ export function checkoutParameters(donation,memberId){
  automatic_tax:{enabled:false},allow_promotion_codes:false,metadata,payment_intent_data:{description:'Sigma Mu Parents Fund',metadata},
  success_url:NETWORK_ORIGIN+'/?donation='+donation.id+'#donate',cancel_url:NETWORK_ORIGIN+'/?donation_cancelled=1#donate'};
 }
-export function donationConfig(env){const key=env('STRIPE_PARENTS_LIVE_KEY'),secret=env('STRIPE_PARENTS_WEBHOOK_SECRET');return {key,secret,ready:/^(rk|sk)_live_/.test(key||'')&&!!secret&&env('STRIPE_PARENTS_LIVE_ACCOUNT_ID')===ACCOUNT_ID,enabled:env('STRIPE_PARENTS_CHECKOUT_ENABLED')==='true'};}
+export function donationConfig(env){const key=(env('STRIPE_PARENTS_LIVE_KEY')||'').trim(),secret=(env('STRIPE_PARENTS_WEBHOOK_SECRET')||'').trim();return {key,secret,ready:/^(rk|sk)_live_/.test(key||'')&&secret.startsWith('whsec_')&&(env('STRIPE_PARENTS_LIVE_ACCOUNT_ID')||'').trim()===ACCOUNT_ID,enabled:(env('STRIPE_PARENTS_CHECKOUT_ENABLED')||'').trim()==='true'};}
 export function ownsPortal(metadata){return metadata?.fund==='parents'&&metadata?.portal==='parents'&&typeof metadata?.donation_id==='string'&&typeof metadata?.member_id==='string';}
