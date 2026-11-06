@@ -55,3 +55,9 @@ Registration and profile forms offer Executive Staff for chapter cabinet members
 ## Announcement images
 
 Manage Announcements supports up to six JPG, PNG, or WebP images per announcement (5 MB each), previews, an optional accessible image description, and removing or replacing images while editing. Photos appear on the homepage and Announcements page. The private parent-announcements bucket allows uploads/deletes only with news permissions; approved members can view images attached to published announcements using expiring signed links. Apply portal/announcement-images.sql only to an existing Parents Portal project; schema.sql already includes it for new installations.
+
+## Donation goals
+
+Admin → Parent Relations & Donations → Manage donation goals creates named goals with a USD target, description and Open/Closed status. The Parents Fund page offers goal cards, net confirmed progress and a goal selector, with general fund giving always available. Goals can be edited, closed and reopened; they are retained for accounting. Both online and offline gifts store the goal ID and original title. Only confirmed live online payments (excluding technical verification), net of refunds, and recorded offline gifts contribute to progress. Pending, failed and expired checkouts do not. Totals do not expose other donors’ identities. Closing stops new checkouts, while previously issued checkout links can still complete.
+
+For an existing isolated Parents Portal project apply portal/donation-goals.sql; schema.sql includes it for new installations. Deploy both donation functions with the shared helper. Run portal/donation-goal-tests.sql and portal/payment-tests.mjs. No sample fundraising goals are seeded.

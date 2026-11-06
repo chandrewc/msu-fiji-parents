@@ -1,6 +1,6 @@
 import Stripe from 'npm:stripe@23.0.0';
 import {createClient} from 'npm:@supabase/supabase-js@2.99.1';
-import {NETWORK_ORIGIN,ORIGINS,ACCOUNT_ID,parseDonation,checkoutParameters,donationConfig} from '../_shared/donations.ts';
+import {NETWORK_ORIGIN,ORIGINS,ACCOUNT_ID,parseDonation,checkoutParameters,donationConfig,matchesGoal} from '../_shared/donations.ts';
 Deno.serve(async(req)=>{
  const origin=req.headers.get('origin')||'';
  const headers={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':ORIGINS.has(origin)?origin:NETWORK_ORIGIN,'Access-Control-Allow-Headers':'authorization,apikey,content-type,x-client-info','Access-Control-Allow-Methods':'POST,OPTIONS','Vary':'Origin'};
@@ -50,12 +50,14 @@ Deno.serve(async(req)=>{
  if(!ready)return reply({error:'Online giving is not available yet.'},503);
  if(input.expected_mode!=='live')return reply({error:'Refresh before continuing.'},409);
  let parsed;try{parsed=parseDonation(input);}catch(e){return reply({error:e.message},400);}
- const pending={id:parsed.requestId,member_id:user.id,amount_cents:parsed.cents,purpose:parsed.purpose,fund:'parents',portal:'parents',livemode:true};
+ let goal=null;
+ if(parsed.goalId){const selected=await db.from('donation_goals').select('id,title,active').eq('id',parsed.goalId).single();if(selected.error||!selected.data?.active)return reply({error:'This goal is no longer accepting donations. Choose another goal.'},409);goal=selected.data;}
+ const pending={id:parsed.requestId,member_id:user.id,amount_cents:parsed.cents,purpose:parsed.purpose,goal_id:goal?.id||null,goal_title:goal?.title||'',fund:'parents',portal:'parents',livemode:true};
  const insert=await db.from('stripe_donations').insert(pending);if(insert.error&&insert.error.code!=='23505')throw insert.error;
  const found=await db.from('stripe_donations').select('*').eq('id',pending.id).eq('member_id',user.id).single();const donation=found.data;
- if(found.error||!donation||donation.amount_cents!==pending.amount_cents||donation.purpose!==pending.purpose||donation.fund!=='parents'||donation.portal!=='parents'||donation.livemode!==true||donation.status!=='pending')return reply({error:'Start a new donation.'},409);
+ if(found.error||!donation||donation.amount_cents!==pending.amount_cents||donation.purpose!==pending.purpose||(donation.goal_id||null)!==pending.goal_id||donation.fund!=='parents'||donation.portal!=='parents'||donation.livemode!==true||donation.status!=='pending')return reply({error:'Start a new donation.'},409);
  const session=donation.checkout_session_id?await stripe.checkout.sessions.retrieve(donation.checkout_session_id):await stripe.checkout.sessions.create(checkoutParameters(donation,user.id),{idempotencyKey:'parents-'+donation.id});
- if(session.status!=='open'||!session.livemode||session.client_reference_id!==donation.id||session.amount_total!==donation.amount_cents||session.currency!=='usd'||session.metadata?.fund!=='parents'||session.metadata?.portal!=='parents'||session.metadata?.donation_id!==donation.id||session.metadata?.member_id!==user.id||!session.url?.startsWith('https://checkout.stripe.com/'))return reply({error:'Checkout verification failed.'},409);
+ if(session.status!=='open'||!session.livemode||session.client_reference_id!==donation.id||session.amount_total!==donation.amount_cents||session.currency!=='usd'||session.metadata?.fund!=='parents'||session.metadata?.portal!=='parents'||session.metadata?.donation_id!==donation.id||session.metadata?.member_id!==user.id||!matchesGoal(donation,session.metadata)||!session.url?.startsWith('https://checkout.stripe.com/'))return reply({error:'Checkout verification failed.'},409);
  if(!donation.checkout_session_id){const saved=await db.from('stripe_donations').update({checkout_session_id:session.id}).eq('id',donation.id);if(saved.error)throw saved.error;}
  return reply({url:session.url,mode:'live',donation_id:donation.id});
  }catch{return reply({error:'Unable to open secure checkout. Please try again later.'},502);}

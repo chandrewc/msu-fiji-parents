@@ -10,3 +10,20 @@ assert.equal(params.metadata.fund,'parents');assert.equal(params.metadata.portal
 assert.equal(params.payment_intent_data.metadata.fund,'parents');assert.equal(params.payment_intent_data.metadata.donation_id,id);assert.equal(params.automatic_tax.enabled,false);
 assert.equal(donationConfig(()=>null).ready,false);assert.equal(ownsPortal({fund:'parents',donation_id:id,member_id:'parent'}),false);
 console.log('Donation validation, metadata, tax, foreign-portal rejection and disabled-default checks passed.');
+
+const {matchesGoal}=await import('./payment-helpers.mjs');
+const goalId='72000000-0000-4000-8000-000000000001';
+assert.equal(parseDonation({amount:'25',purpose:'',request_id:id}).goalId,null);
+assert.equal(parseDonation({amount:'25',purpose:'',request_id:id,goal_id:goalId}).goalId,goalId);
+for(const goal_id of ['made-up',{},123])assert.throws(()=>parseDonation({amount:'25',purpose:'',request_id:id,goal_id}));
+const goalGift={id,amount_cents:2500,goal_id:goalId,goal_title:'Poker table'};
+const goalParams=checkoutParameters(goalGift,'parent');
+assert.equal(goalParams.metadata.goal_id,goalId);
+assert.equal(goalParams.payment_intent_data.metadata.goal_title,'Poker table');
+assert.equal(goalParams.line_items[0].price_data.product_data.name,'Parents Fund — Poker table');
+assert.equal(matchesGoal(goalGift,goalParams.metadata),true);
+assert.equal(matchesGoal(goalGift,{...goalParams.metadata,goal_id:id}),false);
+assert.equal(matchesGoal(goalGift,{...goalParams.metadata,goal_title:'Another goal'}),false);
+assert.equal(matchesGoal({goal_id:null},{}),true);
+assert.equal(matchesGoal({goal_id:null},{goal_id:goalId}),false);
+console.log('Goal selection, checkout labels, Session/PaymentIntent attribution and mismatched-goal rejection passed.');
