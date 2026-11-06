@@ -51,3 +51,7 @@ After SMTP is saved, apply the subjects and HTML in portal/auth-email-templates.
 ## Executive Staff profiles
 
 Registration and profile forms offer Executive Staff for chapter cabinet members, the parents chairman, and portal staff. This is a profile classification, not an administrator role. New staff still require approval; administrator permissions are assigned separately. Staff are excluded by the database directory function and from active Parent Relations views and exports. Account administrators can manage staff in Manage Accounts & Permissions. There is no separate staff contacts page.
+
+## Announcement images
+
+Manage Announcements supports up to six JPG, PNG, or WebP images per announcement (5 MB each), previews, an optional accessible image description, and removing or replacing images while editing. Photos appear on the homepage and Announcements page. The private parent-announcements bucket allows uploads/deletes only with news permissions; approved members can view images attached to published announcements using expiring signed links. Apply portal/announcement-images.sql only to an existing Parents Portal project; schema.sql already includes it for new installations.
