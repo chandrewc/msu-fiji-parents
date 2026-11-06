@@ -175,3 +175,21 @@ declare j jsonb;label text;actor text;begin
  insert into public.admin_activity_log(actor_id,actor_name,action,record_id,record_label) values(auth.uid(),coalesce(nullif(actor,''),'Administrator'),tg_table_name||'.'||lower(tg_op),coalesce(j->>'id',j->>'user_id'),label);
  end if;return coalesce(new,old);end$$;
 alter table public.parent_contacts alter column contact_date set default (now() at time zone 'America/Chicago')::date; alter table public.parent_donations alter column donation_date set default (now() at time zone 'America/Chicago')::date;
+alter table public.parents drop constraint parents_relationship_check; alter table public.parents add constraint parents_relationship_check check(relationship in ('','Parent','Guardian','Other family','Executive Staff'));
+create or replace function private.save_parent_profile(p_full_name text,p_username text,p_relationship text,p_email text,p_phone text,p_city text default '',p_state text default '',p_directory_email text default '',p_directory_phone text default '',p_student_name text default '',p_student_details text default '') returns void language plpgsql security definer set search_path='' as $$begin
+ if auth.uid() is null or not private.not_deactivated() then raise exception 'Sign in required'; end if;
+ if length(trim(p_full_name))<2 or length(trim(p_email))<3 or length(trim(p_phone))<7 or p_relationship not in ('Parent','Guardian','Other family','Executive Staff') then raise exception 'Complete the required profile fields'; end if;
+ update public.parents set full_name=trim(p_full_name),username=lower(trim(p_username)),relationship=p_relationship,city=p_city,state=p_state,directory_email=p_directory_email,directory_phone=p_directory_phone,profile_complete=true where user_id=auth.uid();
+ update public.parent_private set email=p_email,phone=p_phone,student_name=p_student_name,student_details=p_student_details where user_id=auth.uid();
+ end$$;
+create or replace function private.admin_edit_parent(p_user_id uuid,p_full_name text,p_username text,p_relationship text,p_email text,p_phone text,p_city text,p_state text,p_directory_email text,p_directory_phone text,p_student_name text,p_student_details text) returns void language plpgsql security definer set search_path='' as $$
+declare target public.parents; begin
+ if not private.permission('parents') then raise exception 'Parent administrator required'; end if;
+ select * into target from public.parents where user_id=p_user_id for update;
+ if not found or target.protected or target.role='super_admin' then raise exception 'Protected account'; end if;
+ if target.role='admin' and not exists(select 1 from public.parents where user_id=auth.uid() and role='super_admin') then raise exception 'Super administrator required';end if;
+ if length(trim(p_full_name))<2 or length(trim(p_email))<3 or length(trim(p_phone))<7 or p_relationship not in ('Parent','Guardian','Other family','Executive Staff') then raise exception 'Complete the required fields';end if;
+ update public.parents set full_name=trim(p_full_name),username=lower(trim(p_username)),relationship=p_relationship,city=p_city,state=p_state,directory_email=p_directory_email,directory_phone=p_directory_phone where user_id=p_user_id;
+ update public.parent_private set email=p_email,phone=p_phone,student_name=p_student_name,student_details=p_student_details where user_id=p_user_id;
+ end$$;
+create or replace function private.directory() returns table(user_id uuid,full_name text,username text,relationship text,city text,state text,directory_email text,directory_phone text) language sql stable security definer set search_path='' as $$ select p.user_id,p.full_name,p.username,p.relationship,p.city,p.state,p.directory_email,p.directory_phone from public.parents p where private.enabled() and p.approved and not p.rejected and p.deactivated_at is null and p.relationship<>'Executive Staff' order by p.full_name $$;

@@ -8,6 +8,7 @@ insert into auth.users(id,email) values
 update public.parents set full_name='Test Parent',username='test_'||right(user_id::text,1),relationship='Parent',approved=true,profile_complete=true where user_id::text like '10000000-0000-4000-8000-%';
 update public.parents set role='super_admin',protected=true where user_id='10000000-0000-4000-8000-000000000003';
 update public.parents set approved=false where user_id='10000000-0000-4000-8000-000000000004';
+update public.parents set relationship='Executive Staff' where user_id='10000000-0000-4000-8000-000000000001';
 insert into public.newsletters(title,issue_date) values('Test Issue',current_date);
 insert into public.parent_donations(user_id,amount_cents) values('10000000-0000-4000-8000-000000000001',2500),('10000000-0000-4000-8000-000000000002',5000);
 insert into public.stripe_donations(id,member_id,amount_cents,checkout_session_id) values('20000000-0000-4000-8000-000000000001','10000000-0000-4000-8000-000000000001',2500,'cs_portal_fixture');
@@ -15,10 +16,11 @@ set local role authenticated;
 select set_config('request.jwt.claim.sub','10000000-0000-4000-8000-000000000001',true);
 do $$begin
  if (select count(*) from public.parents)<>1 then raise exception 'Base administrative fields exposed';end if;
- if (select count(*) from public.get_parent_directory() where user_id::text like '10000000-0000-4000-8000-%')<>3 then raise exception 'Directory access failed';end if;
+ if (select count(*) from public.get_parent_directory() where user_id::text like '10000000-0000-4000-8000-%')<>2 then raise exception 'Directory access failed';end if;
  if (select count(*) from public.parent_private)<>1 then raise exception 'Student privacy failed';end if;
  if (select count(*) from public.parent_donations)<>1 then raise exception 'Donation ownership failed';end if;
- if (select public.has_admin_permission('parents')) then raise exception 'Ordinary parent has admin';end if;
+ if (select public.has_admin_permission('parents')) then raise exception 'Staff category incorrectly grants admin';end if;
+ if exists(select 1 from public.get_parent_directory() where relationship='Executive Staff') then raise exception 'Staff visible in parent directory';end if;
  begin update public.parents set approved=true;raise exception 'Direct status update was allowed';exception when insufficient_privilege then null;end;
  begin perform public.admin_parent_access('10000000-0000-4000-8000-000000000002','deactivate');raise exception 'Non-admin access change allowed';exception when raise_exception then if sqlerrm='Non-admin access change allowed' then raise;end if;end;
 end$$;

@@ -47,3 +47,7 @@ Run the transaction-only database scenarios in portal/access-tests.sql through t
 The existing chapter sender uses Resend. The new project's prepared SMTP settings are sender noreply@msufiji.com, sender name Sigma Mu Parents Portal, host smtp.resend.com, port 465, and username resend. The SMTP password is a Resend API key (re_), entered directly into Supabase Auth SMTP settings. It is not a Stripe key. The original project's settings were read only and left unchanged.
 
 After SMTP is saved, apply the subjects and HTML in portal/auth-email-templates.json in Supabase Authentication → Emails. The Site URL and return allowlist are already https://parents.msufiji.com/. Email confirmation and password recovery still need delivery tests through the new SMTP configuration. Automatic newsletter emails remain disabled independently of authentication mail.
+
+## Executive Staff profiles
+
+Registration and profile forms offer Executive Staff for chapter cabinet members, the parents chairman, and portal staff. This is a profile classification, not an administrator role. New staff still require approval; administrator permissions are assigned separately. Staff are excluded by the database directory function and from active Parent Relations views and exports. Account administrators can manage staff in Manage Accounts & Permissions. There is no separate staff contacts page.
